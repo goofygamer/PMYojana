@@ -17,9 +17,9 @@ class PMYojana():
         '''
         if loan_size <= 100:
             if DCR_status:
-                return ((self.DCR * project_size) - subsidy_size) * (loan_size/100)
+                return ((self.DCR * project_size - subsidy_size)) * (loan_size/100)
             else:
-                return ((self.NON_DCR * project_size) - subsidy_size) * (loan_size/100)
+                return ((self.NON_DCR * project_size - subsidy_size)) * (loan_size/100)
         else:
             return loan_size
 
@@ -105,22 +105,26 @@ class PMYojana():
             amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
             overall_val = sum(amount['Nominal Amount'])
         if DCR_status:
-            overall_investment = (project_size * self.DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size)
+            overall_investment = (project_size * self.DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
             if realized:
+                print(f'Realized return of {round(overall_val, 0)} INR on {round(overall_investment, 2)} investment.')
                 print(f'{round((((overall_val/overall_investment)**(1/25))-1)*100, 2)}% return over {self.INFLATION*100}% inflation over {self.YOJANA_LENGTH} years.')
             else:
+                print(f'Nominal return of {round(overall_val, 0)} INR on {round(overall_investment, 2)} investment.')
                 print(f'{round((((overall_val/overall_investment)**(1/25))-1)*100, 2)}% return over {self.YOJANA_LENGTH} years.')
         else:
-            overall_investment = (project_size * self.NON_DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size)
+            overall_investment = (project_size * self.NON_DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
             if realized:
+                print(f'Realized return of {round(overall_val, 0)} INR on {round(overall_investment, 2)} investment.')
                 print(f'{round((((overall_val/overall_investment)**(1/25))-1)*100, 2)}% return over {self.INFLATION*100}% inflation over {self.YOJANA_LENGTH} years.')
             else:
+                print(f'Nominal return of {round(overall_val, 0)} INR on {round(overall_investment, 2)} investment.')
                 print(f'{round((((overall_val/overall_investment)**(1/25))-1)*100, 2)}% return over {self.YOJANA_LENGTH} years.')
             
         
         return 
 
-    def figure(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float):
+    def figure(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
         '''
         Draw everything.
         '''
@@ -141,4 +145,5 @@ class PMYojana():
         plt.ylabel('In Lakhs')
         plt.grid(True)
 
+        self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status)
         return
