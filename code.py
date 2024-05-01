@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class PMYojana():
+    #TODO: Add a figure feature that predicts for different values of a particular variable keeping others constant. 
     def __init__(self) -> None:
         self.DCR = 33e6 #DCR Program cost per MW
         self.NON_DCR = 26e6 #Non-DCR Program cost per MW
@@ -124,9 +125,9 @@ class PMYojana():
         
         return 
 
-    def figure(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
+    def figure_total(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
         '''
-        Draw everything.
+        Draw total, nominal, and emi payments.
         '''
         emi_amount = self.emi_payment(project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
         nominal_amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
