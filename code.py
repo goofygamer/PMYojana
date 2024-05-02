@@ -256,11 +256,27 @@ class PMYojana():
             else:
                 plt.ylabel('Nominal Return')
         else:
-            print('Error! Get better idiot (Check Spelling),')
+            print('Error! Get better idiot (Check Spelling).')
         return
     
+    def full_roi(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
+        real_amount = list(self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, DCR_status=DCR_status)['Real Amount'])
+        if DCR_status:
+            overall_investment = (project_size * self.DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
+        else:
+            overall_investment = (project_size * self.NON_DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
+        print(f'Investment of {round(overall_investment, 0)} INR.')
+        total_real_return = 0
+        for i in range(len(real_amount)):
+            total_real_return += real_amount[i]
+            if total_real_return >= overall_investment:
+                diff = overall_investment - (total_real_return - real_amount[i])
+                ratio_to_add = diff/real_amount[i]
+                year = i-1
+                break
+        print(f'{round(year+1+ratio_to_add, 1)} years to get a full ROI.')      
         return
-    
+
     def compare(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, compare: str, realized=True, DCR_status=True):
         if compare == 'DCR_status':
             print('DCR Case')
