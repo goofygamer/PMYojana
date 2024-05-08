@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import subprocess
 
 class PMYojana():
     def __init__(self) -> None:
@@ -259,7 +260,7 @@ class PMYojana():
             print('Error! Get better idiot (Check Spelling).')
         return
     
-    def full_roi(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
+    def full_roi(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True, _output=False):
         real_amount = list(self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, DCR_status=DCR_status)['Real Amount'])
         if DCR_status:
             overall_investment = (project_size * self.DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
@@ -274,7 +275,11 @@ class PMYojana():
                 ratio_to_add = diff/real_amount[i]
                 year = i-1
                 break
-        print(f'{round(year+1+ratio_to_add, 1)} years to get a full ROI.')      
+        if _output:
+            return round(year+1+ratio_to_add, 1)
+        else:
+            print(f'{round(year+1+ratio_to_add, 1)} years to get a full ROI.')
+        
         return
 
     def compare(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, compare: str, realized=True, DCR_status=True):
@@ -293,3 +298,109 @@ class PMYojana():
         else:
             self._figure_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, compare=compare, realized=realized, DCR_status=DCR_status)
         return
+    def _overall_investment(self, project_size: float, loan_size: float, subsidy_size: float, DCR_status=True):
+        if DCR_status:
+            return (project_size * self.DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
+        else:
+            return (project_size * self.NON_DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
+    
+    def generate_latex_report(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
+        # Generate image
+        plt.figure(figsize=(15, 6))
+        self.figure_total(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, realized, DCR_status)
+        plt.savefig("figure_total.png")
+        
+        # Get full ROI
+        full_roi_output = self.full_roi(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, realized, DCR_status, _output=True)
+        overall_investment = self._overall_investment(project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, DCR_status=DCR_status)
+        # Add data to the table
+        nominal_return = self.nominal_amount(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, DCR_status)["Nominal Amount"]
+        realized_return = self.real_amount(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, DCR_status)["Real Amount"]
+
+        overall_nom = nominal_return.sum()
+        overall_real = realized_return.sum()
+
+        real_return = self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=True, DCR_status=DCR_status)
+        nom_return = self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=False, DCR_status=DCR_status)
+        # LaTeX document content
+        latex_content = f"""
+        \\documentclass[10pt]{{article}}
+        \\usepackage[left=0.5cm,right=0.5cm,top=0.5cm,bottom=0.5cm]{{geometry}}
+        \\usepackage{{graphicx}}
+        \\usepackage{{multirow}}
+        \\usepackage{{multicol}}
+        \\usepackage{{tfrupee}}
+        \\begin{{document}}
+
+        % Title
+        \\title{{\\fontsize{{20}}{{24}}\\bfseries\\underline{{Solar Report}}}}
+        \\author{{}}
+        \\date{{}}
+        \\maketitle
+        \\vspace{{-0.5cm}} % Add some vertical space
+
+        % Add line with project details
+        \\vspace{{-1cm}}
+        \\begin{{center}}
+        \\textbf{{Bid Rate:}} \\rupee~{bid_rate}, \\textbf{{Project Size:}} {project_size}MW, \\textbf{{Loan Size:}} {loan_size}, \\textbf{{Subsidy Size:}} \\rupee~{subsidy_size}, \\textbf{{Inflation:}} {round(self.INFLATION*100, 2)}\\%\\\\
+        \\vspace{{-0.75cm}} % Add some vertical space
+        \\end{{center}}
+
+
+        % Include image
+        \\begin{{figure}}[!htb]
+        \\centering
+        \\includegraphics[width=\\textwidth]{{figure_total.png}}
+        \\caption{{Total Returns over 25YRS}}
+        \\end{{figure}}
+        
+        % Start multicol for table and full ROI output
+        \\begin{{multicols}}{{2}}
+        
+        % Table
+        \\begin{{tabular}}{{|c|c|c|}}
+        \\hline
+        Year & Nominal Return & Realized Return \\\\
+        \\hline
+        """
+        # Add data to the table
+        for year, nominal, realized in zip(range(1, len(nominal_return) + 1), nominal_return, realized_return):
+            latex_content += f"{year} & \\rupee~{nominal:.0f} & \\rupee~{realized:.0f} \\\\ \n"
+
+        # Complete LaTeX content for the table
+        latex_content += """
+        \\hline
+        \\end{tabular}
+        
+        % End first column with a line
+        \\columnbreak
+        
+        % Key Facts title
+        \\textbf{\\textit{Key Facts}}:
+        
+        % Full ROI output as bullet point
+        \\begin{itemize}
+        """
+        # Add full ROI output as a bullet point
+        latex_content += f"\\item\\textbf{{Overall Investment}}: \\rupee~{round(overall_investment, 0)}"
+        latex_content += f"\\item\\textbf{{Overall Nominal Return}}: \\rupee~{round(overall_nom, 0)}"
+        latex_content += f"\\item\\textbf{{Overall Real Return}}: \\rupee~{round(overall_real, 0)} over {round(self.INFLATION*100, 0)}\\% inflation"
+        latex_content += f"\\newline"
+        latex_content += f"\\item\\textbf{{Nominal Returns}}: {round(nom_return, 2)}\\% returns over 25 years"
+        latex_content += f"\\item\\textbf{{Real Returns}}: {round(real_return, 2)}\\% returns over {round(self.INFLATION*100, 0)}\\% inflation over 25 years"
+        latex_content += f"\\newline"
+        latex_content += f"\\item\\textbf{{Full ROI In}}: {round(full_roi_output, 1)} years"
+        # End multicol
+        latex_content += "\\end{itemize}\\end{multicols}"
+        
+        # Complete LaTeX content
+        latex_content += "\\end{document}"
+
+        # Write content to a .tex file
+        with open("report.tex", "w") as f:
+            f.write(latex_content)
+
+        # Compile LaTeX to PDF
+        subprocess.run(["pdflatex", "report.tex"])
+
+        print("PDF report generated successfully.")
