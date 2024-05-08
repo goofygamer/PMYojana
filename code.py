@@ -7,7 +7,7 @@ class PMYojana():
     def __init__(self) -> None:
         self.DCR = 33e6 #DCR Program cost per MW
         self.NON_DCR = 26e6 #Non-DCR Program cost per MW
-        self.INFLATION = 0.06 #Inflation Rate
+        self.INFLATION = 0.0485 #Inflation Rate
         self.YOJANA_LENGTH = 25 #How long is the Yojana
         self.UNITS = 4500
 
@@ -384,10 +384,10 @@ class PMYojana():
         # Add full ROI output as a bullet point
         latex_content += f"\\item\\textbf{{Overall Investment}}: \\rupee~{round(overall_investment, 0)}"
         latex_content += f"\\item\\textbf{{Overall Nominal Return}}: \\rupee~{round(overall_nom, 0)}"
-        latex_content += f"\\item\\textbf{{Overall Real Return}}: \\rupee~{round(overall_real, 0)} over {round(self.INFLATION*100, 0)}\\% inflation"
+        latex_content += f"\\item\\textbf{{Overall Real Return}}: \\rupee~{round(overall_real, 0)} over {round(self.INFLATION*100, 2)}\\% inflation"
         latex_content += f"\\newline"
         latex_content += f"\\item\\textbf{{Nominal Returns}}: {round(nom_return, 2)}\\% returns over 25 years"
-        latex_content += f"\\item\\textbf{{Real Returns}}: {round(real_return, 2)}\\% returns over {round(self.INFLATION*100, 0)}\\% inflation over 25 years"
+        latex_content += f"\\item\\textbf{{Real Returns}}: {round(real_return, 2)}\\% returns over {round(self.INFLATION*100, 2)}\\% inflation over 25 years"
         latex_content += f"\\newline"
         latex_content += f"\\item\\textbf{{Full ROI In}}: {round(full_roi_output, 1)} years"
         # End multicol
