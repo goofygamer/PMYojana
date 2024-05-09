@@ -351,7 +351,7 @@ class PMYojana():
         \\begin{{figure}}[!htb]
         \\centering
         \\includegraphics[width=\\textwidth]{{figure_total.png}}
-        \\caption{{Total Returns over 25YRS}}
+        \\caption{{Total Returns over 25 years}}
         \\end{{figure}}
         
         % Start multicol for table and full ROI output
