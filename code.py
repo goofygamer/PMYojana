@@ -7,7 +7,7 @@ class PMYojana():
     def __init__(self) -> None:
         self.DCR = 33e6 #DCR Program cost per MW
         self.NON_DCR = 26e6 #Non-DCR Program cost per MW
-        self.INFLATION = 0.045 #Inflation Rate
+        self.INFLATION = 0.06 #Inflation Rate
         self.YOJANA_LENGTH = 25 #How long is the Yojana
         self.UNITS = 4500
 
