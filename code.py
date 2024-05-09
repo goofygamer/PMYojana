@@ -7,7 +7,7 @@ class PMYojana():
     def __init__(self) -> None:
         self.DCR = 33e6 #DCR Program cost per MW
         self.NON_DCR = 26e6 #Non-DCR Program cost per MW
-        self.INFLATION = 0.0485 #Inflation Rate
+        self.INFLATION = 0.045 #Inflation Rate
         self.YOJANA_LENGTH = 25 #How long is the Yojana
         self.UNITS = 4500
 
@@ -224,7 +224,7 @@ class PMYojana():
                 plt.ylabel('Nominal Return')
         elif compare == 'pay_emi_in':
             if type(pay_emi_in) != list:
-                x = np.arange(int(0.5*pay_emi_in), int(1.5*pay_emi_in), 1)
+                x = np.arange(int(0.5*pay_emi_in), min(int(1.5*pay_emi_in) + 1, 16), 1)
             else:
                 x = np.arange(pay_emi_in[0], pay_emi_in[-1], 1)
             #output
@@ -342,7 +342,7 @@ class PMYojana():
         % Add line with project details
         \\vspace{{-1cm}}
         \\begin{{center}}
-        \\textbf{{Bid Rate:}} \\rupee~{bid_rate}, \\textbf{{Project Size:}} {project_size}MW, \\textbf{{Loan Size:}} {loan_size}, \\textbf{{Subsidy Size:}} \\rupee~{subsidy_size}, \\textbf{{Inflation:}} {round(self.INFLATION*100, 2)}\\%\\\\
+        \\textbf{{Bid Rate:}} \\rupee~{bid_rate}, \\textbf{{Project Size:}} {project_size}MW, \\textbf{{Loan Size:}} {loan_size}, \\textbf{{Subsidy Size:}} \\rupee~{subsidy_size}, \\textbf{{EMI Length:}} {pay_emi_in} years, \\textbf{{Inflation:}} {round(self.INFLATION*100, 2)}\\%\\\\
         \\vspace{{-0.75cm}} % Add some vertical space
         \\end{{center}}
 
