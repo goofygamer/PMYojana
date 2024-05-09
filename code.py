@@ -9,7 +9,8 @@ class PMYojana():
         self.NON_DCR = 26e6 #Non-DCR Program cost per MW
         self.INFLATION = 0.06 #Inflation Rate
         self.YOJANA_LENGTH = 25 #How long is the Yojana
-        self.UNITS = 4500
+        self.UNITS = 4500 #Units per MW
+        self.LAND_INCREASE = 0.05 #how much it increases every two years
 
     def loan_amount(self, project_size: float, DCR_status: bool, loan_size: float, subsidy_size:float):
         '''
@@ -63,15 +64,15 @@ class PMYojana():
 
         return emi_structure
     
-    def nominal_amount(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size:float, DCR_status=True):
+    def nominal_amount(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size:float, DCR_status=True, cost_per_bigha_per_month = 3e4):
         '''
         Nominal amount = Total amount - EMI Payment
         '''
         total_amount = self.total_amount(bid_rate=bid_rate, project_size=project_size)
         emi_pay = self.emi_payment(project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, DCR_status=DCR_status)
-
+        land_cost = self.land_cost(project_size=project_size, cost_per_bigha_per_month=cost_per_bigha_per_month)
         nominal_amount = total_amount
-        nominal_amount['Nominal Amount'] = total_amount['Gross Return'] - emi_pay['EMI']
+        nominal_amount['Nominal Amount'] = total_amount['Gross Return'] - emi_pay['EMI'] - land_cost['Land Cost']
 
         return nominal_amount[['Year', 'Nominal Amount']]
     
@@ -88,12 +89,12 @@ class PMYojana():
 
         return inflation_by_year
     
-    def real_amount(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, DCR_status=True):
+    def real_amount(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, DCR_status=True, cost_per_bigha_per_month = 3e4):
         '''
         Nominal amount realized by the inflation factor.
         '''
         #get Nominal Amounts
-        nominal_amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, DCR_status=DCR_status)
+        nominal_amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, DCR_status=DCR_status, cost_per_bigha_per_month=cost_per_bigha_per_month)
         
         #turn it into Real Amounts
         real_amount = nominal_amount
@@ -105,12 +106,12 @@ class PMYojana():
 
         return real_amount[['Year', 'Real Amount']]
     
-    def annualized_return(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
+    def annualized_return(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True, cost_per_bigha_per_month = 3e4):
         if realized:
-            amount = self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
+            amount = self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in, cost_per_bigha_per_month = cost_per_bigha_per_month)
             overall_val = sum(amount['Real Amount'])
         else:
-            amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
+            amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in, cost_per_bigha_per_month = cost_per_bigha_per_month)
             overall_val = sum(amount['Nominal Amount'])
         if DCR_status:
             overall_investment = (project_size * self.DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
@@ -132,13 +133,13 @@ class PMYojana():
         
         return 
 
-    def figure_total(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
+    def figure_total(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True, cost_per_bigha_per_month = 3e4):
         '''
         Draw total, nominal, and emi payments.
         '''
         emi_amount = self.emi_payment(project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
-        nominal_amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
-        real_amount = self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
+        nominal_amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in, cost_per_bigha_per_month = cost_per_bigha_per_month)
+        real_amount = self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in, cost_per_bigha_per_month = cost_per_bigha_per_month)
 
         plt.plot(emi_amount['Year'], emi_amount['EMI']/1e5)
         plt.plot(emi_amount['Year'], nominal_amount['Nominal Amount']/1e5)
@@ -153,15 +154,15 @@ class PMYojana():
         plt.ylabel('In Lakhs')
         plt.grid(True)
 
-        self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status)
+        self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month)
         return
     
-    def _annualized_return(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized: bool, DCR_status: bool):
+    def _annualized_return(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized: bool, DCR_status: bool, cost_per_bigha_per_month = 3e4):
         if realized:
-            amount = self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
+            amount = self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in, cost_per_bigha_per_month = cost_per_bigha_per_month)
             overall_val = sum(amount['Real Amount'])
         else:
-            amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in)
+            amount = self.nominal_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, pay_emi_in=pay_emi_in, cost_per_bigha_per_month = cost_per_bigha_per_month)
             overall_val = sum(amount['Nominal Amount'])
         if DCR_status:
             overall_investment = (project_size * self.DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
@@ -170,7 +171,7 @@ class PMYojana():
         
         return (((overall_val/overall_investment)**(1/25))-1)*100
 
-    def _figure_return(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, compare: str, realized: bool, DCR_status: bool):
+    def _figure_return(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, compare: str, realized: bool, DCR_status: bool, cost_per_bigha_per_month = 3e4):
         if compare == 'bid_rate':
             if type(bid_rate) != list:
                 x = np.linspace(0.5*bid_rate, 1.5*bid_rate, 10)
@@ -179,7 +180,7 @@ class PMYojana():
             #output
             y = []
             for val in x:
-                y.append(self._annualized_return(bid_rate=val, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status))
+                y.append(self._annualized_return(bid_rate=val, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month))
             plt.plot(x, y)
             plt.scatter(x, y)
             plt.grid(True)
@@ -196,7 +197,7 @@ class PMYojana():
             #output
             y = []
             for val in x:
-                y.append(self._annualized_return(bid_rate=bid_rate, project_size=val, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status))
+                y.append(self._annualized_return(bid_rate=bid_rate, project_size=val, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month))
             plt.plot(x, y)
             plt.scatter(x, y)
             plt.grid(True)
@@ -213,7 +214,7 @@ class PMYojana():
             #output
             y = []
             for val in x:
-                y.append(self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=val, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status))
+                y.append(self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=val, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month))
             plt.plot(x, y)
             plt.scatter(x, y)
             plt.grid(True)
@@ -230,7 +231,7 @@ class PMYojana():
             #output
             y = []
             for val in x:
-                y.append(self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=val, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status))
+                y.append(self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=val, subsidy_size=subsidy_size, realized=realized, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month))
             plt.plot(x, y)
             plt.scatter(x, y)
             plt.grid(True)
@@ -247,7 +248,7 @@ class PMYojana():
             #output
             y = []
             for val in x:
-                y.append(self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=val, realized=realized, DCR_status=DCR_status))
+                y.append(self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=val, realized=realized, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month))
             plt.plot(x, y)
             plt.scatter(x, y)
             plt.grid(True)
@@ -260,8 +261,8 @@ class PMYojana():
             print('Error! Get better idiot (Check Spelling).')
         return
     
-    def full_roi(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True, _output=False):
-        real_amount = list(self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, DCR_status=DCR_status)['Real Amount'])
+    def full_roi(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True, cost_per_bigha_per_month = 3e4, _output=False):
+        real_amount = list(self.real_amount(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month)['Real Amount'])
         if DCR_status:
             overall_investment = (project_size * self.DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
         else:
@@ -282,21 +283,21 @@ class PMYojana():
         
         return
 
-    def compare(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, compare: str, realized=True, DCR_status=True):
+    def compare(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, compare: str, realized=True, DCR_status=True, cost_per_bigha_per_month = 3e4):
         if compare == 'DCR_status':
             print('DCR Case')
-            self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=True)
+            self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=True, cost_per_bigha_per_month = cost_per_bigha_per_month)
             print('-'*10)
             print('Non-DCR Case')
-            self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=False)
+            self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=realized, DCR_status=False, cost_per_bigha_per_month = cost_per_bigha_per_month)
         elif compare == 'realized':
             print('Nominal Return')
-            self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=False, DCR_status=DCR_status)
+            self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=False, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month)
             print('-'*10)
             print('Realized Return')
-            self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=True, DCR_status=DCR_status)
+            self.annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=True, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month)
         else:
-            self._figure_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, compare=compare, realized=realized, DCR_status=DCR_status)
+            self._figure_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, compare=compare, realized=realized, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month)
         return
     def _overall_investment(self, project_size: float, loan_size: float, subsidy_size: float, DCR_status=True):
         if DCR_status:
@@ -304,24 +305,42 @@ class PMYojana():
         else:
             return (project_size * self.NON_DCR) - self.loan_amount(project_size=project_size, subsidy_size=subsidy_size, DCR_status=DCR_status, loan_size=loan_size) - subsidy_size
     
-    def generate_latex_report(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True):
+    def land_need(self, project_size: float):
+        return 4.0*project_size #bighas of land
+    
+    def land_cost(self, project_size: float, cost_per_bigha_per_month = 3e4):
+        total_land_cost = [cost_per_bigha_per_month] * self.YOJANA_LENGTH
+        for i in range(0, len(total_land_cost), 2):
+            total_land_cost[i] *= (1 + self.LAND_INCREASE)**(i//2)
+            if i + 1 < len(total_land_cost):
+                total_land_cost[i+1] *= (1 + self.LAND_INCREASE)**(i//2)
+
+        dictionary = {'Year': np.arange(1, 26), 'Land Cost': total_land_cost}
+        land_cost_by_year = pd.DataFrame.from_dict(dictionary)
+        land_cost_by_year['Land Cost'] *= self.land_need(project_size=project_size)
+
+        return land_cost_by_year
+
+    def generate_latex_report(self, bid_rate: float, project_size: float, loan_size: float, pay_emi_in: int, subsidy_size: float, realized=True, DCR_status=True, cost_per_bigha_per_month = 3e4):
         # Generate image
         plt.figure(figsize=(15, 6))
         self.figure_total(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, realized, DCR_status)
         plt.savefig("figure_total.png")
         
         # Get full ROI
-        full_roi_output = self.full_roi(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, realized, DCR_status, _output=True)
+        full_roi_output = self.full_roi(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, realized, DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month, _output=True)
         overall_investment = self._overall_investment(project_size=project_size, loan_size=loan_size, subsidy_size=subsidy_size, DCR_status=DCR_status)
         # Add data to the table
-        nominal_return = self.nominal_amount(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, DCR_status)["Nominal Amount"]
-        realized_return = self.real_amount(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, DCR_status)["Real Amount"]
-
+        nominal_return = self.nominal_amount(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, DCR_status,cost_per_bigha_per_month = cost_per_bigha_per_month)["Nominal Amount"]
+        realized_return = self.real_amount(bid_rate, project_size, loan_size, pay_emi_in, subsidy_size, DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month)["Real Amount"]
+        land_cost = self.land_cost(project_size=project_size, cost_per_bigha_per_month=cost_per_bigha_per_month)['Land Cost']
+        land_needed = self.land_need(project_size=project_size)
         overall_nom = nominal_return.sum()
         overall_real = realized_return.sum()
 
-        real_return = self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=True, DCR_status=DCR_status)
-        nom_return = self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=False, DCR_status=DCR_status)
+
+        real_return = self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=True, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month)
+        nom_return = self._annualized_return(bid_rate=bid_rate, project_size=project_size, loan_size=loan_size, pay_emi_in=pay_emi_in, subsidy_size=subsidy_size, realized=False, DCR_status=DCR_status, cost_per_bigha_per_month = cost_per_bigha_per_month)
         # LaTeX document content
         latex_content = f"""
         \\documentclass[10pt]{{article}}
@@ -342,7 +361,7 @@ class PMYojana():
         % Add line with project details
         \\vspace{{-1cm}}
         \\begin{{center}}
-        \\textbf{{Bid Rate:}} \\rupee~{bid_rate}, \\textbf{{Project Size:}} {project_size}MW, \\textbf{{Loan Size:}} {loan_size}, \\textbf{{Subsidy Size:}} \\rupee~{subsidy_size}, \\textbf{{EMI Length:}} {pay_emi_in} years, \\textbf{{Inflation:}} {round(self.INFLATION*100, 2)}\\%\\\\
+        \\textbf{{Bid Rate:}} \\rupee~{bid_rate}, \\textbf{{Project Size:}} {project_size}MW, \\textbf{{Loan Size:}} {loan_size}, \\textbf{{Subsidy Size:}} \\rupee~{subsidy_size}, \\textbf{{EMI Length:}} {pay_emi_in} years, \\textbf{{Land Needed:}} {land_needed} bighas, \\textbf{{Inflation:}} {round(self.INFLATION*100, 2)}\\%\\\\
         \\vspace{{-0.75cm}} % Add some vertical space
         \\end{{center}}
 
@@ -358,14 +377,14 @@ class PMYojana():
         \\begin{{multicols}}{{2}}
         
         % Table
-        \\begin{{tabular}}{{|c|c|c|}}
+        \\begin{{tabular}}{{|c|c|c|c|}}
         \\hline
-        Year & Nominal Return & Realized Return \\\\
+        Year & Nominal Return & Realized Return & Land Cost \\\\
         \\hline
         """
         # Add data to the table
-        for year, nominal, realized in zip(range(1, len(nominal_return) + 1), nominal_return, realized_return):
-            latex_content += f"{year} & \\rupee~{nominal:.0f} & \\rupee~{realized:.0f} \\\\ \n"
+        for year, nominal, realized, land in zip(range(1, len(nominal_return) + 1), nominal_return, realized_return, land_cost):
+            latex_content += f"{year} & \\rupee~{nominal:.0f} & \\rupee~{realized:.0f} & \\rupee~{land:.0f} \\\\ \n"
 
         # Complete LaTeX content for the table
         latex_content += """
